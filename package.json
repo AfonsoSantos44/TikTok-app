@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "node web-server.mjs",
+    "start": "node web-server.mjs",
+    "test": "node --check web-server.mjs && node --check web-services.mjs && node --check public/web/client.mjs"
   },
   "keywords": [],
   "author": "",

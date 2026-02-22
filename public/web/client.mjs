@@ -1,100 +1,149 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    const content = document.getElementById("content");
-    const homeLink = document.getElementById("home-link");
-    const trendingLink = document.getElementById("trending-link");
+const content = document.getElementById('content');
 
-    // Add event listeners to your links
-    homeLink.addEventListener("click", loadHomePage);
-    trendingLink.addEventListener("click", loadTrendingPage);
-});
+const REGIONS = [
+  ['US', 'United States'],
+  ['GB', 'United Kingdom'],
+  ['DE', 'Germany'],
+  ['FR', 'France'],
+  ['IT', 'Italy'],
+  ['ES', 'Spain'],
+  ['BR', 'Brazil'],
+  ['CA', 'Canada'],
+  ['AU', 'Australia'],
+  ['JP', 'Japan'],
+];
 
-async function loadHomePage() {
-    // Load home page content
+renderDashboard();
+
+function renderDashboard() {
+  content.innerHTML = `
+    <section class="panel controls">
+      <h2>Trend Scanner</h2>
+      <form id="trend-form">
+        <label>
+          Region
+          <select id="region">
+            ${REGIONS.map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
+          </select>
+        </label>
+        <label>
+          Top videos
+          <input id="count" type="number" min="1" max="50" value="10" />
+        </label>
+        <button type="submit">Analyze Trends</button>
+      </form>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section id="insights" class="panel"></section>
+    <section id="video-grid" class="video-grid"></section>
+  `;
+
+  document.getElementById('trend-form').addEventListener('submit', onSubmit);
 }
 
-async function loadTrendingPage() {
-    content.innerHTML = `
-    <h2>Trending Videos</h2>
-    <label for="trending-Top">Top:</label>
-    <input type="number" id="trending-TopMax" name="trending-Top">
-    <label for="region">Region:</label>
-    <select id="region" name="region">
-        <option value="us">United States</option>
-        <option value="gb">United Kingdom</option>
-        <option value="de">Germany</option>
-        <option value="fr">France</option>
-        <option value="it">Italy</option>
-        <option value="es">Spain</option>
-        <option value="br">Brazil</option>
-        <option value="ca">Canada</option>
-        <option value="au">Australia</option>
-        <option value="ru">Russia</option>
-        <option value="jp">Japan</option>
-        </select>
-    <button onclick="fetchAndDisplayTrendingVideos()">Load Trending Videos</button>
-    <div id="trending-videos"></div>
-    `;
-}
+async function onSubmit(event) {
+  event.preventDefault();
 
-async function getTrendingVideos(trendingTop, region) {
-    const options = {
-        method: 'GET',
-        url: 'https://tiktok-scraper7.p.rapidapi.com/feed/list',
-        params: {
-            region: region,
-            count: trendingTop
-        },
-        headers: {
-            'x-rapidapi-key': 'a841967c43msh9f11ce89fba848ep119a78jsncfe166c11a5d',
-            'x-rapidapi-host': 'tiktok-scraper7.p.rapidapi.com'
-        }
-    };
+  const region = document.getElementById('region').value;
+  const count = Number.parseInt(document.getElementById('count').value, 10) || 10;
+  const status = document.getElementById('status');
 
-    try {
-        const response = await fetch(options.url, options);
-        const data = await response.json();
-        return data.data || []; // Return 'data.data' assuming 'data' is an object containing 'data' property
-    } catch (error) {
-        console.error(error);
-        return []; // Return an empty array if there is an error
+  if (count < 1 || count > 50) {
+    status.textContent = 'Please choose a value between 1 and 50.';
+    return;
+  }
+
+  status.textContent = 'Loading trending videos...';
+
+  try {
+    const response = await fetch(`/api/trending?region=${region}&count=${count}`);
+    if (!response.ok) {
+      throw new Error(`Request failed (${response.status})`);
     }
+
+    const data = await response.json();
+    const videos = data.items || [];
+
+    renderInsights(videos, data.source, region);
+    renderVideos(videos);
+
+    status.textContent = `Loaded ${videos.length} videos (${data.source} data).`;
+  } catch (error) {
+    status.textContent = `Could not load trends: ${error.message}`;
+  }
 }
 
-function displayTrendingVideos(data) {
-    const videos = data; // Assuming 'data' is an array of videos
+function renderInsights(videos, source, region) {
+  const insights = document.getElementById('insights');
 
-    // Get the trending videos element
-    const trendingVideosElement = document.getElementById("trending-videos");
+  if (!videos.length) {
+    insights.innerHTML = '<h3>No videos found</h3>';
+    return;
+  }
 
-    // Clear the trending videos element
-    trendingVideosElement.innerHTML = "";
+  const totalViews = videos.reduce((sum, video) => sum + (video.play_count || 0), 0);
+  const totalEngagements = videos.reduce(
+    (sum, video) => sum + (video.digg_count || 0) + (video.comment_count || 0) + (video.share_count || 0),
+    0,
+  );
 
-    // Loop through the videos and add them to the trending videos element
-    videos.forEach(video => {
-        // Create a new div element for the video
-        const videoElement = document.createElement("div");
+  const avgViews = Math.round(totalViews / videos.length);
+  const engagementRate = totalViews ? ((totalEngagements / totalViews) * 100).toFixed(2) : 0;
 
-        // Set the innerHTML of the video element
-        videoElement.innerHTML = `
-            <h3>${video.title}</h3>
-            <img src="${video.cover}" alt="${video.title}">
-            <p>Play Count: ${video.play_count}</p>
-            <p>Digg Count: ${video.digg_count}</p>
-            <p>Comment Count: ${video.comment_count}</p>
-            <p>Share Count: ${video.share_count}</p>
-        `;
-
-        // Append the video element to the trending videos element
-        trendingVideosElement.appendChild(videoElement);
-    });
+  insights.innerHTML = `
+    <h2>Creator Insights (${region})</h2>
+    <div class="metrics">
+      <article><h3>${formatNumber(totalViews)}</h3><p>Total views in sample</p></article>
+      <article><h3>${formatNumber(avgViews)}</h3><p>Average views per video</p></article>
+      <article><h3>${engagementRate}%</h3><p>Engagement rate</p></article>
+      <article><h3>${source === 'live' ? 'Live API' : 'Mock mode'}</h3><p>Data source</p></article>
+    </div>
+    <p class="tip">Tip: prioritize concepts from videos with high shares + comments, not only views.</p>
+  `;
 }
 
-// Example usage:
-window.fetchAndDisplayTrendingVideos = async function (){
-    try {
-        const trendingVideos = await getTrendingVideos( data.count, 'US'); // Fetch 10 trending videos from US region
-        displayTrendingVideos(trendingVideos);
-    } catch (error) {
-        console.error('Failed to fetch or display trending videos:', error);
-    }
+function renderVideos(videos) {
+  const videoGrid = document.getElementById('video-grid');
+
+  const ranked = [...videos].sort((a, b) => getTrendScore(b) - getTrendScore(a));
+
+  videoGrid.innerHTML = ranked
+    .map((video, index) => {
+      const score = getTrendScore(video);
+      return `
+        <article class="video-card">
+          <img src="${video.cover}" alt="${escapeHtml(video.title || 'Trending video cover')}" loading="lazy" />
+          <div class="video-card-body">
+            <p class="rank">#${index + 1} • Trend score ${formatNumber(score)}</p>
+            <h3>${escapeHtml(video.title || 'Untitled')}</h3>
+            <p class="meta">by ${escapeHtml(video.author?.nickname || 'unknown creator')}</p>
+            <ul>
+              <li>▶ ${formatNumber(video.play_count || 0)} views</li>
+              <li>❤ ${formatNumber(video.digg_count || 0)} likes</li>
+              <li>💬 ${formatNumber(video.comment_count || 0)} comments</li>
+              <li>↗ ${formatNumber(video.share_count || 0)} shares</li>
+            </ul>
+          </div>
+        </article>
+      `;
+    })
+    .join('');
+}
+
+function getTrendScore(video) {
+  return (video.play_count || 0) + (video.share_count || 0) * 4 + (video.comment_count || 0) * 3 + (video.digg_count || 0) * 2;
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat().format(value);
+}
+
+function escapeHtml(rawText) {
+  return String(rawText)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#039;');
 }

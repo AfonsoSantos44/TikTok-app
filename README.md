@@ -1,33 +1,33 @@
 # TikTok Trend Intelligence
 
-A simple web app for creators to inspect TikTok trending videos, evaluate engagement signals,
+A web app for creators to inspect real TikTok trending videos, evaluate engagement signals,
 and decide what trend formats to test next.
 
-## What is improved
+## Real data only
 
-- Secure architecture: API key moved from client code to server-side endpoint (`/api/trending`).
-- Better UX: dashboard with region selector, top-N selector, metric cards, and ranked video cards.
-- Actionable insights: calculated sample totals, average views, engagement rate, and a custom trend score.
-- Local development fallback: works in mock mode when no RapidAPI key is configured.
+This app now requires live API data. It will not fall back to mock data.
 
 ## Run locally
 
+1. Install dependencies:
+
 ```bash
 npm install
+```
+
+2. Export your API key in the shell before starting the server:
+
+```bash
+export RAPIDAPI_KEY=your_key_here
+# Optional (defaults shown)
+export RAPIDAPI_HOST=tiktok-scraper7.p.rapidapi.com
+export PORT=3000
+```
+
+3. Start the app:
+
+```bash
 npm run dev
 ```
 
-Open `http://localhost:3000`.
-
-## Environment variables (optional)
-
-If you want real live data from RapidAPI:
-
-- `RAPIDAPI_KEY`: your API key
-- `RAPIDAPI_HOST` (optional): defaults to `tiktok-scraper7.p.rapidapi.com`
-
-Example:
-
-```bash
-RAPIDAPI_KEY=your_key_here npm run dev
-```
+Then open `http://localhost:3000`.

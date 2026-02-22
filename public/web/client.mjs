@@ -54,27 +54,29 @@ async function onSubmit(event) {
     return;
   }
 
-  status.textContent = 'Loading trending videos...';
+  status.textContent = 'Loading real TikTok trending videos...';
 
   try {
     const response = await fetch(`/api/trending?region=${region}&count=${count}`);
+    const payload = await response.json();
+
     if (!response.ok) {
-      throw new Error(`Request failed (${response.status})`);
+      throw new Error(payload.details || payload.error || `Request failed (${response.status})`);
     }
 
-    const data = await response.json();
+    const data = payload;
     const videos = data.items || [];
 
-    renderInsights(videos, data.source, region);
+    renderInsights(videos, region);
     renderVideos(videos);
 
-    status.textContent = `Loaded ${videos.length} videos (${data.source} data).`;
+    status.textContent = `Loaded ${videos.length} videos from TikTok API.`;
   } catch (error) {
     status.textContent = `Could not load trends: ${error.message}`;
   }
 }
 
-function renderInsights(videos, source, region) {
+function renderInsights(videos, region) {
   const insights = document.getElementById('insights');
 
   if (!videos.length) {
@@ -97,7 +99,7 @@ function renderInsights(videos, source, region) {
       <article><h3>${formatNumber(totalViews)}</h3><p>Total views in sample</p></article>
       <article><h3>${formatNumber(avgViews)}</h3><p>Average views per video</p></article>
       <article><h3>${engagementRate}%</h3><p>Engagement rate</p></article>
-      <article><h3>${source === 'live' ? 'Live API' : 'Mock mode'}</h3><p>Data source</p></article>
+      <article><h3>Live API</h3><p>Data source</p></article>
     </div>
     <p class="tip">Tip: prioritize concepts from videos with high shares + comments, not only views.</p>
   `;

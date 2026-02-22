@@ -18,7 +18,9 @@ app.get('/api/trending', async (req, res) => {
     const data = await getTrendingFeed({ count, region });
     return res.json(data);
   } catch (error) {
-    return res.status(502).json({
+    const status = error.message.includes('RAPIDAPI_KEY') ? 500 : 502;
+
+    return res.status(status).json({
       error: 'Failed to fetch trending data',
       details: error.message,
     });

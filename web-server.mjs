@@ -8,14 +8,14 @@ app.use(express.static('public'));
 
 app.get('/api/trending', async (req, res) => {
   const count = Number.parseInt(req.query.count, 10) || 10;
-  const region = String(req.query.region || 'US').toUpperCase();
+  const country = String(req.query.country || 'US').toUpperCase();
 
   if (count < 1 || count > 50) {
     return res.status(400).json({ error: 'count must be between 1 and 50' });
   }
 
   try {
-    const data = await getTrendingFeed({ count, region });
+    const data = await getTrendingFeed({ count, country });
     return res.json(data);
   } catch (error) {
     const status = error.message.includes('RAPIDAPI_KEY') ? 500 : 502;

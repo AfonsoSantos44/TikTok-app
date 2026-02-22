@@ -1,6 +1,6 @@
 const content = document.getElementById('content');
 
-const REGIONS = [
+const COUNTRIES = [
   ['US', 'United States'],
   ['GB', 'United Kingdom'],
   ['DE', 'Germany'],
@@ -21,9 +21,9 @@ function renderDashboard() {
       <h2>Trend Scanner</h2>
       <form id="trend-form">
         <label>
-          Region
-          <select id="region">
-            ${REGIONS.map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
+          Country
+          <select id="country">
+            ${COUNTRIES.map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
           </select>
         </label>
         <label>
@@ -45,7 +45,7 @@ function renderDashboard() {
 async function onSubmit(event) {
   event.preventDefault();
 
-  const region = document.getElementById('region').value;
+  const country = document.getElementById('country').value;
   const count = Number.parseInt(document.getElementById('count').value, 10) || 10;
   const status = document.getElementById('status');
 
@@ -57,7 +57,7 @@ async function onSubmit(event) {
   status.textContent = 'Loading real TikTok trending videos...';
 
   try {
-    const response = await fetch(`/api/trending?region=${region}&count=${count}`);
+    const response = await fetch(`/api/trending?country=${country}&count=${count}`);
     const payload = await response.json();
 
     if (!response.ok) {
@@ -67,7 +67,7 @@ async function onSubmit(event) {
     const data = payload;
     const videos = data.items || [];
 
-    renderInsights(videos, region);
+    renderInsights(videos, country);
     renderVideos(videos);
 
     status.textContent = `Loaded ${videos.length} videos from TikTok API.`;
@@ -76,7 +76,7 @@ async function onSubmit(event) {
   }
 }
 
-function renderInsights(videos, region) {
+function renderInsights(videos, country) {
   const insights = document.getElementById('insights');
 
   if (!videos.length) {
@@ -94,7 +94,7 @@ function renderInsights(videos, region) {
   const engagementRate = totalViews ? ((totalEngagements / totalViews) * 100).toFixed(2) : 0;
 
   insights.innerHTML = `
-    <h2>Creator Insights (${region})</h2>
+    <h2>Creator Insights (${country})</h2>
     <div class="metrics">
       <article><h3>${formatNumber(totalViews)}</h3><p>Total views in sample</p></article>
       <article><h3>${formatNumber(avgViews)}</h3><p>Average views per video</p></article>
